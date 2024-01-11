@@ -1,0 +1,102 @@
+from IPython.display import clear_output
+
+def playersmove():
+    print('Welcome to Tictaktoe!')
+    gamelist = [' '] * 9
+    
+    print_board(gamelist)
+    
+    code = ' '
+    while code not in ('X','x', 'O', 'o'):
+        code = input('To start, please choose your code X or O: ')
+        if code not in ('X','x','O','o'):
+            clear_output()
+            print("Please enter a valid code 'X/O': ")
+        player_1 = code.upper()
+        if player_1 == 'X':
+            player_2 = 'O'
+        else:
+            player_2 = 'X'
+        
+    print(f'Player 1: {player_1}')
+    print(f'Player 2: {player_2}')
+    
+    winning_combinations = [[0,1,2], [3,4,5], [6,7,8], [0,3,6], [1,4,7], [2,5,8], [0,4,8], [2,4,6]]
+    
+    while True:
+        # player1
+        player1_choice = int(input('Player 1, choose your move (1-9): '))
+        if player1_choice in range(1, 10):
+            player1choiceindex = player1_choice - 1
+            board_availability(gamelist,player1choiceindex,player_1)
+     
+        clear_output()
+        print_board(gamelist)
+        
+        if check_winner(gamelist, winning_combinations, player_1):
+            print('Player 1 wins!')
+            game_continue()
+            return
+            
+        if ' ' not in gamelist:
+            print('The game is a draw!')
+            game_continue()
+            return
+      
+
+        # player2
+        player2_choice = int(input('Player 2, choose your move (1-9): '))
+        if player2_choice in range(1, 10):
+            player2choiceindex = player2_choice - 1
+            board_availability(gamelist,player2choiceindex,player_2)
+         
+        clear_output()
+        print_board(gamelist)
+    
+       
+        if check_winner(gamelist, winning_combinations, player_2):
+            print('Player 2 wins!')
+            game_continue()
+            return
+            
+
+def print_board(gamelist):
+    print(f"{gamelist[6]} | {gamelist[7]} | {gamelist[8]}"),
+    print('-----------'),
+    print(f"{gamelist[3]} | {gamelist[4]} | {gamelist[5]}"),
+    print('-----------'),
+    print(f"{gamelist[0]} | {gamelist[1]} | {gamelist[2]}")
+
+def check_winner(gamelist, winning_combinations, player):
+    for combination in winning_combinations:
+        if all(gamelist[i] == player for i in combination):
+            return True
+    return False
+
+def game_continue():
+    continue_code = ''
+    while continue_code not in ('Y','y','N','n'):
+        continue_code = input('Do you want to play again?')
+        if continue_code not in ('Y','y','N','n'):
+            clear_output()
+            print('Please enter a valid code (Y/N): ')
+        if continue_code.upper() == 'Y':
+            clear_output()
+            playersmove()
+        elif continue_code.upper() == 'N':
+            print('Thank you for playing!')
+            return
+        
+def board_availability(gamelist,player_choice,player):
+    if gamelist[player_choice] == ' ':
+        gamelist[player_choice] = player
+        return True
+    else:
+        print('Board is not available. Please choose another number.')
+        new_choice = int(input(f'{player}, choose your move (1-9): '))
+        return board_availability(gamelist, new_choice - 1, player)
+
+
+
+# Run the game
+playersmove()
