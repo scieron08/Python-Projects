@@ -1,0 +1,84 @@
+import glob
+import pandas as pd
+import xml.etree.ElementTree as ET
+from datetime import datetime
+
+target_file = 'extracted_data.csv'
+
+csv_path = '/home/a4dc18b3-349e-496c-a81a-047f034aeb0f/data_source/*.csv'
+csvfiles = glob.glob(csv_path)
+
+json_path = '/home/a4dc18b3-349e-496c-a81a-047f034aeb0f/data_source/*.json'
+jsonfiles = glob.glob(json_path)
+
+xml_path = '/home/a4dc18b3-349e-496c-a81a-047f034aeb0f/data_source/*.xml'
+xmlfiles = glob.glob(xml_path)
+
+def readcsv(csvfiles):
+    dataframe = pd.read_csv(csvfiles)
+    return dataframe
+
+def readjson(jsonfiles):
+    dataframe = pd.read_json(jsonfiles,lines=True)
+    return dataframe
+
+def readxml(xmlfiles):
+    dataframe = pd.DataFrame(columns = ['car_model', 'year_of_manufacture', 'price', 'fuel'])
+    tree = ET.parse(xmlfiles)
+    root = tree.getroot()
+    for columns in root:
+        car_model = columns.find('car_model').text
+        year_of_manufacture = columns.find('year_of_manufacture').text
+        price = float(columns.find('price').text)
+        fuel = columns.find('fuel')
+        data = {'car_model':car_model,'year_of_manufacture':year_of_manufacture,'price':price,'fuel':fuel}
+        dataframe = pd.concat([dataframe,pd.DataFrame([data])],ignore_index=True)
+        return dataframe
+    
+def extract():
+    extracted_data = pd.DataFrame(columns = ['car_model', 'year_of_manufacture', 'price', 'fuel'])
+    
+    for csvfile in csvfiles:
+        extracted_data = pd.concat([extracted_data,pd.DataFrame(readcsv(csvfile))],ignore_index=True)
+        
+    for jsonfile in jsonfiles:
+        extracted_data = pd.concat([extracted_data,pd.DataFrame(readjson(jsonfile))],ignore_index=True)
+    
+    for xmlfile in xmlfiles:
+        extracted_data = pd.concat([extracted_data,pd.DataFrame(readxml(xmlfile))],ignore_index=True)
+        
+        return extracted_data
+
+def transform(from_extract):
+    from_extract['price'] = round(from_extract['price'],2)
+    return from_extract
+
+def load_data(target_file, transformed_data):
+    transformed_data.to_csv(target_file)
+
+def log_progress(message):
+    timestamp_format = '%Y-%h-%d-%H:%M:%D:%S'
+    now = datetime.now()
+    timestamp = now.strftime(timestamp_format)
+    with open(log_file,"a") as f:
+        f.write(timestamp + ',' + message + '\n')
+
+log_progress('ETL Job Started')
+
+log_progress('Extraction Phase Started')
+extracted_data = extract()
+
+log_progress('Extraction Phase Ended')
+
+log_progress('Transformation Phase Started')
+transformed_data = transform(extracted_data)
+    
+log_progress('Transformation Pahse Ended')
+
+log_progress('Loading Phase Started')
+load_data(target_file,transformed_data)
+
+log_progress('Loading Phase Ended')
+
+log_progress('ETL Job Ended')
+    
