@@ -1,0 +1,54 @@
+import pandas as pd
+import numpy as np 
+
+bank_file_path = '/Users/ellaalmoite/Documents/Ericson_Files/Python_practice/marketing_data/bank_marketing.csv'
+client_df_to_extract = (['client_id','age','job','marital','education','credit_default','mortgage'])
+client_df_target_file = 'client.csv'
+
+campaign_df_to_extract = (['client_id','number_contacts','contact_duration','previous_campaign_contacts','previous_outcome','campaign_outcome'])
+campaign_df_target_file = 'campaign.csv'
+
+economics_df_to_extract = (['client_id','cons_price_idx','euribor_three_months'])
+economics_df_target_file = 'economics.csv'
+
+month_name_to_number= {'jan': '01','feb':'02','mar':'03','apr':'04','may':'05','jun':'06','jul':'07','aug':'08','sep':'09','oct':'10','nov':'11','dec':'12' }
+#def readcsv(bank_file_path):
+    #data = pd.read_csv(bank_file_path)
+    #client_dataframe = pd.read_csv(bank_file_path, usecols=client_df_to_extract)
+    #campaign_dataframe = pd.read_csv(bank_file_path,usecols=campaign_df_to_extract)
+    #return client_dataframe, campaign_dataframe
+    
+def extract():
+    data = pd.read_csv(bank_file_path)
+    client_dataframe = data[client_df_to_extract]
+    campaign_dataframe = data[campaign_df_to_extract]
+    economics_dataframe = data[economics_df_to_extract]
+    return data, client_dataframe , campaign_dataframe, economics_dataframe
+
+
+def transform_client_dataframe(client_dataframe):
+    client_dataframe['job'] = client_dataframe['job'].str.replace(".","_")
+    client_dataframe['education'] = client_dataframe['education'].replace([".","_"],["unknown",np.NaN])
+    client_dataframe['credit_default'] = client_dataframe['credit_default'].astype(bool)
+    client_dataframe['mortgage'] = client_dataframe['mortgage'].astype(bool)
+    return client_dataframe
+
+def transform_campaign_dataframe(campaign_dataframe, data):
+    campaign_dataframe['previous_outcome'] = campaign_dataframe['previous_outcome'].astype(bool)
+    campaign_dataframe['campaign_outcome'] = campaign_dataframe['campaign_outcome'].astype(bool)
+    data['month'] = data['month'].map(month_name_to_number)
+    last_contact_date = data.apply(lambda row: pd.to_datetime(f"2022-{row['month']}-{row['day']}",format="%Y-%m-%d"),axis=1)
+    campaign_dataframe.loc[:,'last_contact_date'] = last_contact_date
+    return campaign_dataframe
+
+def load(dataframe, filename):
+    dataframe.to_csv(filename, index=False)
+
+extracted_file = extract()
+transformed_client = transform_client_dataframe(extracted_file[1])
+transformed_campaign = transform_campaign_dataframe(extracted_file[2], extracted_file[0])
+load(transformed_client,client_df_target_file)
+load(transformed_campaign,campaign_df_target_file)
+load(extracted_file[3],economics_df_target_file)
+#print(transformed_client)
+#print(transformed_campaign)
