@@ -1,0 +1,83 @@
+import glob
+import xml.etree.ElementTree as ET 
+import pandas as pd 
+from datetime import datetime
+
+destination_file = 'etl_extraction.csv'
+log_file = 'etl_log.txt'
+
+csv_path = '/Python_practice/ETL/*.csv'
+csv_files = glob.glob(csv_path)
+
+json_path = '/Python_practice/ETL/*.json'
+json_files = glob.glob(json_path)
+
+xml_path = '/Python_practice/ETL/*.xml'
+xml_files = glob.glob(xml_path)
+
+
+def read_xml(xml_files):
+    xml_dataframe = pd.DataFrame(columns=['name','height','weight','documentType'])
+    tree=ET.parse(xml_files)
+    root = tree.getroot()
+        
+    for person in root.findall('person'): 
+        name = person.find('name').text
+        height = float(person.find('height').text)
+        weight = float(person.find('weight').text)
+        xml_df = pd.DataFrame({'name':[name],'height':[height],'weight':[weight]})
+        xml_df['documentType']='xml'
+        xml_dataframe = pd.concat([xml_dataframe,xml_df],ignore_index=True)
+    return xml_dataframe
+                
+
+def extract():
+    consolidated_file = pd.DataFrame(columns=['name','height','weight','documentType'])
+
+    for csvfile in csv_files:
+        csv_df = pd.DataFrame(pd.read_csv(csvfile))
+        csv_df['documentType']='csv'
+        consolidated_file = pd.concat([consolidated_file,csv_df],ignore_index=True)
+
+    for jsonfile in json_files:
+        json_df = pd.DataFrame(pd.read_json(jsonfile,lines=True))
+        json_df['documentType']='json'
+        consolidated_file = pd.concat([consolidated_file,json_df],ignore_index=True)
+
+    for xmlfile in xml_files:
+        consolidated_file = pd.concat([consolidated_file,pd.DataFrame(read_xml(xmlfile))],ignore_index=True)
+                                      
+    return consolidated_file
+
+def transform(extracted_data):
+    extracted_data['height'] = round(extracted_data.height *0.0254,2)
+    extracted_data['weight'] = round(extracted_data.weight * 0.45359237,2)
+    return extracted_data
+
+def load(target_file,transformed_data):
+    transformed_data.to_csv(target_file)
+
+def log_progress(message):
+    timestamp_format = '%Y-%h-%d-%H:%M:%S'
+    now = datetime.now()
+    timestamp = now.strftime(timestamp_format)
+    with open(log_file,"a") as f:
+        f.write(timestamp + ',' + message + '\n')
+
+log_progress("ETL Job Started")
+log_progress("Extraction Pahse Started")
+extracted_data = extract()
+log_progress("Extraction Phase Ended")
+log_progress("Transformation Phase Started")
+transformed_data = transform(extracted_data)
+log_progress("Transformation Phase Ended")
+log_progress("Loading Phase Started")
+load(destination_file,transformed_data)
+log_progress("Loading Phase Ended")
+log_progress("ETL Job is Completed")
+
+    
+
+
+
+     
